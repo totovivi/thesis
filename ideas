@@ -1,0 +1,14 @@
+MUSIC
+
+count frequency apprition/length song
+length song other variable
+
+
+AUTONOMOUS LEARNING
+
+we just set a reward according to what the robot is meant at
+
+different situations: 
+if reward on other actor/target variable, look at history, do not confuse with other actions causing other consequences
+
+avoid pain, seek for gain
