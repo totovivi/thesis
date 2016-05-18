@@ -473,7 +473,6 @@ class Selfplay:
             #learn from updated matrix every selfplays/10 games
             if s.games %(selfplays/10) == 0 or s.games == selfplays:
                 if s.state.full() or s.state.won(1) or s.state.won(2):
-                    #scipy.misc.imsave('newgame.png', s.learner.fullimg(s.state))
                     print 'wins proportion: ', s.wins/s.games
                     #learn from appended data and save model
                     D = np.genfromtxt(data, skip_footer=1)
