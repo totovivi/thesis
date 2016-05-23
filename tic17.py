@@ -5,6 +5,15 @@
 
 
 
+#use always same O image, only illegal: on top of X
+
+
+
+
+
+
+
+
 #TO DO:
     #IMG DISTORT: http://stackoverflow.com/questions/14177744/how-does-perspective-transformation-work-in-pil
     #convolutional
@@ -113,8 +122,10 @@ class Learner:
     def nn_train(s, X, y):
         n = X.shape[0]
         cv_set = random.sample(range(0, n), int(round(n*0.2, 0)))
-        global cv
-        cv = (X[cv_set,:], y[cv_set])
+        Xcv = X[cv_set,:] ; ycv = y[cv_set]
+        X = X.reshape(-1, 1, dim, dim)
+        Xcv = Xcv.reshape(-1, 1, dim, dim)
+        cv = (Xcv, ycv)
         if os.path.exists('/Users/Thomas/git/thesis/nn.pkl'):
             neural_loaded = pickle.load(open('nn.pkl', 'rb'))
             neural_loaded.predict(X)
@@ -124,10 +135,10 @@ class Learner:
 
         s.net = Regressor(
                 layers=[
-                    Layer("Rectifier", units=200),
-                    Layer("Sigmoid", units=200),
-                    Layer("Rectifier", units=200),
-                    Layer("Sigmoid", units=200),
+                    Convolution("Rectifier", channels=100, kernel_shape=(3,3)),
+                    #Layer("Sigmoid", units=100),
+                    #Layer("Rectifier", units=100),
+                    #Layer("Sigmoid", units=100),
                     Layer("Sigmoid")],
                 n_iter=200,
                 learning_rate=0.001,
@@ -135,7 +146,7 @@ class Learner:
                 valid_set=cv,
                 learning_rule='rmsprop',
                 f_stable=0.001,
-                verbose=None,
+                verbose=True,
                 batch_size=1000,
                 n_stable=10)
 

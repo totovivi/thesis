@@ -39,7 +39,7 @@ from PIL import Image, ImageEnhance
 from lasagne import layers as lasagne, nonlinearities as nl
 import glob
 
-smalls = '/Users/Thomas/git/thesis/images5/smalls'
+smalls = '/Users/Thomas/git/thesis/images6/smalls'
 os.chdir(smalls)
 Xs = []
 Os = []
@@ -47,8 +47,8 @@ Ns = []
 maxi = 0
 pred = 0
 who = 'none'
-dim = 10
-selfplays = 100
+dim = 3
+selfplays = 1
 for i in os.listdir(smalls):
     if i.startswith('X'):
         Xs.append(scipy.misc.imread(i, flatten=True))
@@ -100,7 +100,7 @@ class Learner:
         if player == 1:
             if alpha == None: s.alpha = 0.8
             else: s.alpha = alpha
-            if epsilon == None: s.epsilon = 0.8
+            if epsilon == None: s.epsilon = 0.5
             else: s.epsilon = epsilon
         else: 
             if alpha == None: s.alpha = 0.8
@@ -130,13 +130,13 @@ class Learner:
                     Layer("Sigmoid", units=200),
                     Layer("Sigmoid")],
                 n_iter=200,
-                learning_rate=0.001,
+                learning_rate=0.0001,
                 parameters=params,
                 valid_set=cv,
                 learning_rule='rmsprop',
-                f_stable=0.001,
-                verbose=None,
-                batch_size=1000,
+                f_stable=0.0001,
+                verbose=True,
+                batch_size=100,
                 n_stable=10)
 
         return s.net.fit(X, y)
@@ -285,8 +285,9 @@ class Game:
         s.reset() #define that reset is part of the game 
         s.sp = Selfplay(s.learner) #if we want self learning
         
-        s.O = s.learner.imvec('images5/smalls/O1.png')
-        s.N = s.learner.imvec('images5/smalls/N1.png')
+        s.O = s.learner.imvec(smalls+'/O1.png')
+
+        s.played = []
     
     #define the reset function    
     def reset(s):
@@ -294,7 +295,7 @@ class Game:
         s.learner.reset()
         print s.state
 
-    def __call__(s, pi=1, pj=1): #whatever original assignement
+    def __call__(s, pi=1, pj=1, new=False): #whatever original assignement
 
         j = pi - 1 #take the first coordinate of the previous state
         i = pj - 1 #take the second coordinate of the previous state
@@ -304,25 +305,42 @@ class Game:
             newest = max(glob.iglob('*.[Pp][Nn][Gg]'), key=os.path.getctime)
             img = Image.open(newest).resize((dim*3,dim*3), Image.ANTIALIAS).convert('LA')
             bright = ImageEnhance.Brightness(img)
-            img = bright.enhance(1.6)
+            img = bright.enhance(1.5)
             contrast = ImageEnhance.Contrast(img)
-            img = contrast.enhance(4)
+            img = contrast.enhance(3)
             img.save('small_game.png')
             s.newgimg = scipy.misc.imread('small_game.png', flatten=True)
-            #os.remove('images5/small_game.png')    
+            #os.remove('small_game.png')    
 
             #based on new image, create matrix of tries, return image with 'NN' max val
             s.actions = [(0,0),(0,1),(0,2),(1,0),(1,1),(1,2),(2,0),(2,1),(2,2)]
-            s.tries = np.empty([9*dim**2,])
-            for a in s.actions:
-                x = a[0]+1 ; y = a[1]+1
-                s.newgimg[x*dim-dim:x*dim, y*dim-dim:y*dim] = s.O
-                s.tries = np.vstack((s.tries, s.newgimg.flatten()))
-                s.newgimg[x*dim-dim:x*dim, y*dim-dim:y*dim] = s.N
-            s.tries = np.delete(s.tries, 0, 0)
-            s.max = s.learner.nn_pred(s.tries).argmax()
+            #keep track of moves in game:
+            if new==False: 
+                s.actions = [v for i, v in enumerate(s.actions) if i not in set(s.played)]
+                for p in s.played:
+                    s.newgimg[p[0]*dim-dim:p[0]*dim, p[1]*dim-dim:p[1]*dim] = s.O
+                #PUT BLACK SQUARE WHERE PLAYED PREVIOUSLY
+            else: 
+                s.played = []
 
-            print 'predictions'
+                #TEMPORARY:
+                s.actions = [v for i, v in enumerate(s.actions) if i not in set([2,4])]
+                s.newgimg[dim-dim:dim, 3*dim-dim:3*dim] = s.O
+                s.newgimg[2*dim-dim:2*dim, 2*dim-dim:2*dim] = s.O
+
+            s.tries = np.empty((0,9*dim**2))
+            for a in s.actions:
+                temp = s.newgimg
+                x = (a[0]+1)*dim ; y = (a[1]+1)*dim
+                temp[x-dim:x, y-dim:y] = s.O
+                s.tries = np.append(s.tries, [temp.flatten()], axis=0)
+
+            newsmall = np.reshape(s.tries[4,:], (-1, dim**2))
+            scipy.misc.imsave('try.png', newsmall)
+
+            s.max = s.learner.nn_pred(s.tries).argmax()
+            s.played.append(int(s.max))
+
             print s.learner.nn_pred(s.tries)
             s.action = s.actions[s.max]
 
@@ -391,9 +409,9 @@ class Selfplay:
                 s.tries = np.append(s.tries, [s.learner.fullimg(s.state).flatten()], axis=0)
                 s.state[a] = 0
 
-            #states in all but not in enum_actions are illegal, their y is set to 0
+            #states where Learner plays on top of Other get y = 0
             for b in [(0,0),(0,1),(0,2),(1,0),(1,1),(1,2),(2,0),(2,1),(2,2)]:
-                if b not in s.learner.enum_actions(s.state):
+                if s.state[b] == 1:
                     init = s.state[b]
                     s.state[b] = 2
                     ratio = round((s.games+1)/selfplays, 0)
@@ -503,4 +521,4 @@ if __name__ == "__main__":
 
 g.selfplay(selfplays)
 
-g()
+g(new=True)
