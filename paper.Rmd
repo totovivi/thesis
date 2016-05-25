@@ -1,0 +1,66 @@
+---
+title: "Automated optimization of a course of actions in a stochastic environment"
+author: "Thomas Vicente"
+output: pdf_document
+fontsize: 12pt
+header-includes: \usepackage{bm}
+                 \usepackage{bbm}
+                 \usepackage{algorithmic}
+                 \usepackage{algorithm}
+---
+
+#General principle
+
+\newcommand{\IND}[1][1]{\STATE\hspace{#1\algorithmicindent}}
+\begin{algorithm*}
+\caption{General version}
+\begin{algorithmic}
+\STATE$\textbf{initialize:}$
+\IND$f() \text{: regressor function}$
+\IND$x_t \text{: current stochastic environment}$
+\IND$\Omega_t(x_t) \text{: set of possible actions}$
+\IND$s(x_t) \text{: signal activated or not by the stochastic environment, initialized to 0}$
+\IND$W^*=W_0\text{: random weights for the regressor}$
+\IND$X\text{: empty training feature matrix}$
+\IND$y\text{: empty training target vector}$
+\IND$A\text{: empty feature matrix for simulated actions}$
+\IND$\bm{\gamma} \in [0,1] \text{ discount rate}$
+\IND$\Delta = 0 \text{: number of actions}$
+\STATE$\textbf{while } \text{the learning process is on:}$
+\IND$\text{record }x_t$
+\IND$A \text{ = empty matrix}$
+\IND$\textbf{for } a' \text{ simulated action in } \Omega_t(x_t)$
+\IND[2]$A.append(a')$
+\IND$a^*=\arg\max_{a' \in A} f(W^*,A)$
+\IND$X.append(a^*)$
+\IND$\textbf{if } s(a^*) \text{ != } 0 \text{ :}$
+\IND[2]$\textbf{for } a \text{ in } \Delta \text{:}$
+\IND[3]$value = \gamma^{a-1}s(a^*)$
+\IND[3]$y.append(value)$
+\IND[3]$W^* := \arg\min_{W}(l(f(W,X),y))$
+\IND[3]$\Delta = 0$
+\IND$\textbf{else} \text{:}$
+\IND[2]$\Delta \text{ += } 1$
+\IND[2]$\text{continue}$
+\end{algorithmic}
+\end{algorithm*}
+
+The algorithm assumes two underlying function:
+
+- The minimization process is a tedious part of the algorithm. When dealing with unstructured features, we might want to use a neural network-type regressor. In that case, $W$, the set of the hidden layers' weights is initialized with the values of the previous iterations. The optimal $W^*$ should converge as $X$ grows if there are patterns in the stochastic processes.
+
+- The signal function assumes the existence of one or multiple sensors, or the manual assignement of a value. It is conditional on the current environment and takes positive value if a "gain" is sensed, and negative value if a "pain" is sensed.
+
+###Remark on the function of the regressor's role
+The regressor's task is not to predict accurately, even though it is closely related, but rather to give the "real value" of an action.
+
+#Analysis of why RL+NN converge, why it works
+It needs to have a good balance between gains and pains
+
+#Application
+
+###Remark on the function of the regressor's role
+Two intermediary movements can ultimately lead to both winning and losing. Such states will get a non-tendencial value as $X$ grows, which is a good thing.
+
+##Analysis of game
+Do some graph based on data.txt's target variable, observe time effects, wins evolution

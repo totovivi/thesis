@@ -1,33 +1,8 @@
-
-
-
-
-
-
-
 #TO DO:
     #IMG DISTORT: http://stackoverflow.com/questions/14177744/how-does-perspective-transformation-work-in-pil
     #convolutional
-    #extra: not just where it plays but heatmap according to predict values
-
-
-
-
-
-
-    #NORMALIZE IMAGE: http://stackoverflow.com/questions/1735025/how-to-normalize-a-numpy-array-to-within-a-certain-range
-    #maybe just before training
-
-
-
-
-
-
-
-
-
-#best: danielnouri.org/notes/2014/12/17/using-convolutional-neural-nets-to-detect-facial-keypoints-tutorial/
-#One advantage is that training converges much faster; maybe four times faster in this case. The second advantage is that it also helps get better generalization; pre-training acts as a regularizer. 
+    #best: danielnouri.org/notes/2014/12/17/using-convolutional-neural-nets-to-detect-facial-keypoints-tutorial/
+    #One advantage is that training converges much faster; maybe four times faster in this case. The second advantage is that it also helps get better generalization; pre-training acts as a regularizer. 
 
 from __future__ import division
 from random import sample
@@ -43,7 +18,7 @@ import sys
 import scipy
 from scipy import misc
 from sknn.mlp import Regressor, Layer, Convolution
-from PIL import Image, ImageEnhance, ImageDraw
+from PIL import Image, ImageEnhance, ImageDraw, ImageOps
 from lasagne import layers as lasagne, nonlinearities as nl
 import glob
 
@@ -56,7 +31,7 @@ maxi = 0
 pred = 0
 who = 'none'
 dim = 3
-selfplays = 1
+selfplays = 100
 for i in os.listdir(smalls):
     if i.startswith('X'):
         Xs.append(scipy.misc.imread(i, flatten=True))
@@ -144,7 +119,7 @@ class Learner:
                 learning_rule='rmsprop',
                 f_stable=0.0001,
                 verbose=True,
-                batch_size=100,
+                batch_size=200,
                 n_stable=10)
 
         return s.net.fit(X, y)
@@ -310,31 +285,32 @@ class Game:
         if s.state[j,i] == 0:
             #import and treat one image per move
             os.chdir('/Users/Thomas/git/thesis/newgames')
-            newest = max(glob.iglob('*.[Pp][Nn][Gg]'), key=os.path.getctime)
-            img = Image.open(newest).resize((dim*3,dim*3), Image.ANTIALIAS).convert('LA')
+            newest = max(glob.iglob('S*.[Pp][Nn][Gg]'), key=os.path.getctime)
+            img = Image.open(newest).resize((dim*3,dim*3), Image.ANTIALIAS).convert('L')
+            img = ImageOps.autocontrast(img,ignore=range(0,135)+range(230,256))
+            img = ImageOps.mirror(img)
             bright = ImageEnhance.Brightness(img)
-            img = bright.enhance(1)
+            img = bright.enhance(1.5)
             contrast = ImageEnhance.Contrast(img)
-            img = contrast.enhance(1)
+            #img = contrast.enhance(2)
+            newgimg = np.array(img)
             img.save('small_game.png')
-            newgimg = scipy.misc.imread('small_game.png', flatten=True)
-            os.remove('small_game.png')    
+            newgimg = scipy.misc.imread('small_game.png', flatten=False, mode='L')
 
             #based on new image, create matrix of tries, return image with 'NN' max val
             s.actions = [(0,0),(0,1),(0,2),(1,0),(1,1),(1,2),(2,0),(2,1),(2,2)]
-            #keep track of moves in game:
-            if new==False: 
-                s.actions = [v for i, v in enumerate(s.actions) if i not in set(s.played)]
-                for p in s.played:
-                    newgimg[p[0]*dim-dim:p[0]*dim, p[1]*dim-dim:p[1]*dim] = s.O
-                #PUT BLACK SQUARE WHERE PLAYED PREVIOUSLY
-            else: 
-                s.played = []
 
-                #TEMPORARY:
-                s.actions = [v for i, v in enumerate(s.actions) if i not in set([0,3])]
-                newgimg[1*dim-dim:1*dim, 1*dim-dim:1*dim] = s.O
-                newgimg[2*dim-dim:2*dim, 1*dim-dim:1*dim] = s.O
+            #keep track of moves in game:
+            if new==False:
+                for p in s.played:
+                    print p
+                    c = s.actions[p]
+                    print c
+                    x = (c[0]+1)*dim ; y = (c[1]+1)*dim
+                    newgimg[x-dim:x, y-dim:y] = s.O
+                    del s.actions[p]
+            else:
+                s.played = []
             scipy.misc.imsave('temp.png', newgimg)
 
             s.tries = np.empty((0,9*dim**2))
@@ -343,27 +319,28 @@ class Game:
                 x = (a[0]+1)*dim ; y = (a[1]+1)*dim
                 temp[x-dim:x, y-dim:y] = s.O
                 s.tries = np.append(s.tries, [temp.flatten()], axis=0)
-            os.remove('temp.png') 
 
-            s.max = s.learner.nn_pred(s.tries).argmax()
-            s.played.append(int(s.max))
+            neural_loaded = pickle.load(open('/Users/Thomas/git/thesis/nn.pkl', 'rb'))
+            pred = neural_loaded.predict(s.tries)
+            s.max = pred.argmax()
+            s.played.append(s.max)
 
-            print s.learner.nn_pred(s.tries)
-            s.action = s.actions[s.max]
-
-            img = Image.open(newest)
+            img = Image.open(newest).resize((150,150), Image.ANTIALIAS)
             img = img.convert('RGB')
-            img = img.resize((150,150), Image.ANTIALIAS)
-            img.save(newest)
-            s.game = scipy.misc.imread(newest, flatten=True)
-            s.robotplayed = s.learner.imvec('/Users/Thomas/git/thesis/robotplayed.png')
-            s.a = s.actions[s.max]
-            x = s.a[0]+1 ; y = s.a[1]+1
+            img = ImageOps.mirror(img)
+            draw = ImageDraw.Draw(img)
+            for t in range(0,len(s.tries)):
+                act = s.actions[t]
+                p = round(pred[t], 3)
+                x = (act[0]+1)*50-10 ; y = (act[1]+1)*50-69
+                if p == round(max(pred), 3): red = 225
+                else: red = 0
+                draw.text((y, x), str("{:10.3f}".format(p)), fill=(red, 0, 0))
+                img.save(sys.stdout, "PNG")
 
-            s.game[x*50-50:x*50, y*50-50:y*50] = s.robotplayed
-            s.deflat = np.reshape(s.game, (-1, 150))
-            scipy.misc.imsave('/Users/Thomas/git/thesis/robotmove/robotmove.png', s.deflat)
-            os.chdir('/Users/Thomas/git/thesis')
+            scipy.misc.imsave('/Users/Thomas/git/thesis/robotmove/predictions.png', img)
+            #os.remove('temp.png')
+            os.remove('small_game.png')
 
     def selfplay(s, n):
         #for specific number of rounds
@@ -524,10 +501,11 @@ class Selfplay:
                 break   
 
 if __name__ == "__main__":
-    p1 = Learner(player = 1)
-    p2 = Learner(player = 2)
+    p1 = Learner(player=1)
+    p2 = Learner(player=2)
     g = Game()
 
-g.selfplay(selfplays)
+#g.selfplay(selfplays) #train against a Q-learning robot
 
-g(new=True)
+g(new=True) #first round of a game
+g(new=False) #other round than first
