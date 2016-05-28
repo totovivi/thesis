@@ -6,7 +6,9 @@
 
 from __future__ import division
 from random import sample
+import datetime
 import random
+import csv
 import numpy as np
 from numpy import diag
 import cPickle
@@ -31,7 +33,7 @@ maxi = 0
 pred = 0
 who = 'none'
 dim = 3
-selfplays = 100
+selfplays = 1000
 for i in os.listdir(smalls):
     if i.startswith('X'):
         Xs.append(scipy.misc.imread(i, flatten=True))
@@ -83,7 +85,7 @@ class Learner:
         if player == 1:
             if alpha == None: s.alpha = 0.8
             else: s.alpha = alpha
-            if epsilon == None: s.epsilon = 0.5
+            if epsilon == None: s.epsilon = 0.99
             else: s.epsilon = epsilon
         else: 
             if alpha == None: s.alpha = 0.8
@@ -365,6 +367,7 @@ class Selfplay:
         s.i = 0
         s.games = 0
         s.wins = 0
+        s.losses = 0
         s.wining = []
         s.valuesave = dict()
 
@@ -373,6 +376,7 @@ class Selfplay:
 
         s.y_game = np.empty((0))
         s.moves = 1
+        s.winsteps = []
         s.gamma = 0.7
 
     def reset(s):
@@ -455,7 +459,8 @@ class Selfplay:
                 s.y_game = np.repeat(s.y_game, 4, axis=0) #duplicate each row 4 times
                 s.y2 = np.concatenate((s.y2, s.y_game), axis=0)
                 s.y_game = np.empty((0))
-                s.moves = 1
+                if s.state.full() or s.state.won(1):
+                    s.moves = 1
             else:
                 s.moves += 1
 
@@ -481,18 +486,38 @@ class Selfplay:
 
                 if s.state.won(2):
                     s.wins += 1
+                    s.winsteps.append(s.moves)
+                    s.moves = 1
+                if s.state.won(1):
+                    s.losses += 1
 
             #learn from updated matrix every selfplays/10 games
             if s.games %(selfplays/10) == 0 or s.games == selfplays:
                 if s.state.full() or s.state.won(1) or s.state.won(2):
-                    print 'wins proportion: ', s.wins/s.games
+
+                    propwin = s.wins/s.games
+                    proploss = s.losses/s.games
+                    meanwinsteps = reduce(lambda x, y: x + y, s.winsteps)/len(s.winsteps)
+                    obs = [propwin, proploss, meanwinsteps]
+                    print 'obs ', obs
+                    report = '/Users/Thomas/git/thesis/reports/'+str(selfplays)+'games_epsilon'+str(s.other.epsilon)+'.txt'
+                    if os.path.exists(report):
+                        with open(report, 'a') as f:
+                            w = csv.writer(f)
+                            w.writerow(obs)
+                    else:
+                        with open(report, 'w') as f:
+                            w = csv.writer(f)
+                            w.writerow(obs)
+
+                    print 'wins proportion: ', propwin
                     #learn from appended data and save model
                     D = np.genfromtxt(data, skip_footer=1)
                     Dx = D[:,0:9*dim**2]
                     Dy = D[:,9*dim**2]
                     nn = s.learner.nn_train(Dx, Dy)
                     pickle.dump(nn, open('nn.pkl', 'wb')) #save the neural network to use its learned weights and biases
-                    s.wins = 0 ; s.games = 0
+                    s.wins = 0 ; s.losses = 0 ; s.games = 0 ; s.winsteps = []
 
             if s.state.full() or s.state.won(1) or s.state.won(2):
                 #if game not finished, other does optimised next step
@@ -505,7 +530,7 @@ if __name__ == "__main__":
     p2 = Learner(player=2)
     g = Game()
 
-#g.selfplay(selfplays) #train against a Q-learning robot
+g.selfplay(selfplays) #train against a Q-learning robot
 
-g(new=True) #first round of a game
-g(new=False) #other round than first
+#g(new=True) #first round of a game
+#g(new=False) #other round than first

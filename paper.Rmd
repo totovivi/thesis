@@ -4,13 +4,43 @@ author: "Thomas Vicente"
 output: pdf_document
 fontsize: 12pt
 header-includes: \usepackage{bm}
-                 \usepackage{bbm}
-                 \usepackage{algorithmic}
-                 \usepackage{algorithm}
+         \usepackage{bbm}
+         \usepackage{algorithmic}
+         \usepackage{algorithm}
 ---
+
+#Introduction
+First sentence: ~philosophical. A complete exercise would be to build an autonomous entity that is able to take long term oriented decisions based on information coming from the phisical reality.
+
+This entity needs two abilities: learning from its own actions and recognising the current environment's patterns. The first ability is typically made possible by a Reinforcement Learning (RL) mechanism. The second ability is done by regressors or classifiers powerful enough to adapt to the entity's sensorial features. In particular, if the entity is equipped by a visual sensor, neural networks might be a good idea.
+
+RL emerges easily from other Machine Learning techniques as the training is done by acting. The learner evolves in particular environment and records what actions lead to a maximal gain. In most cases the goal is to maximise a long term gain by taing a correct course of actions. These policies can be more or less explicit. An RL learner is particularly dependent on a state signal that succeeds in retaining all relevant information ; this state is said to be Markov. For example, a checkers position (the current configuration of all the pieces on the board) would serve as a Markov state because it summarizes everything important about the complete sequence of positions that led to it. Much of the information about the sequence is lost, but all that really matters for the future of the game is retained.
+
+DO I DO ON OR OFF POLICY? Policy related to Markov decision process
+
+Examples of regressors/classifier "recognising the real world"
+Using an approximator has two benefits: ability to provide an evaluation of an infinite set of states and recognise the underlying states (equivalent for the purpose of a particular task) when the signal is imperfect, which is our case with our study.
+
+Tic tac toe, a classical RL application, is also a good example for the principle studied. I present an application of the approchaed principle in the second part.
+
+#Litterature review
+
+The closest algorithm from our principle is in 9.4 in Sutton (2012). But the proposed principle differs from it. First, we consider the possibility of same underlying states with imperfect signals (in a handwritten game, this is due to the differences in handwritten letters every time a human plays). Second, we do not use Temporal differences but a discount method.
+
+Deep Q networks (DQN) are similar to the proposed principle as they store long term data. This is the so called "Experience replay": when training the network, random minibatches from the replay memory are used instead of the most recent transition. Such efficient implementation makes the DQN very adaptive to different tasks, as demonstrated for the learning of multiple arcade games while using the same network architecture. 
 
 #General principle
 Explain how it works in sentences
+
+Alternative discount
+
+Table of all possible values from discounted equation (about 12 values I guess)
+
+quick review of different regressors
+
+In the algorithm description, we try to get a maximum of generality and thus use the term "regressor".
+
+Seems that "discount post signal" is the particularity of model. Give empirical insights why it works/is efficient. Good point: each step takes a value, not only final ones (can represent with a colored gradient picture)
 
 \newcommand{\IND}[1][1]{\STATE\hspace{#1\algorithmicindent}}
 \begin{algorithm*}
@@ -35,7 +65,10 @@ Explain how it works in sentences
 \IND$X' := \text{ empty matrix}$
 \IND$\textbf{FOR } x' \text{ in } \Omega_t(x_t)\text{:}$
 \IND[2]$\text{append } x' \text{ to } X'$
-\IND$x^*:=\arg\max_{x' \in X'} f(w^*,X')$
+\IND$\text{With probability } 1-\epsilon$
+\IND[2]$x^*:=\arg\max_{x' \in X'} f(w^*,X')$
+\IND$\text{With probability } \epsilon$
+\IND[2]$x^*:=\text{random sample }x' \in X'$
 \IND$\text{append } x^* \text{ to } X$
 \IND$\textbf{IF } s(x^*) \text{ != } 0 \text{ :}$
 \IND[2]$\textbf{FOR } \delta \text{ in } 1\text{:}\Delta \text{:}$
@@ -61,11 +94,58 @@ The regressor's task is not to predict accurately, even though it is closely rel
 
 #Analysis of why RL+NN converge, why it works
 It needs to have a good balance between gains and pains
+Find some equations, ask Gabor then
 
-#Application
+#Cool remark
+sometimes the triggering a new signal can take time. But robot can still look for best discounted s(x^*). Wecan consider that the robot "discovers" new objectives in that context. True in general RL
+
+#Application 
+
+Explain game
+"Long term" (3-5 actions) strategy matters. Discount acts here
+The environment contains rivalry. Another, more classical, robot.
+
+###Talk about tweaks
+generation of images
+other guy for selfplay...
+rotations to go faster than Other
+learn not after each game
 
 ###Remark on the function of the regressor's role
 Two intermediary movements can ultimately lead to both winning and losing. Such states will get a non-tendencial value as $X$ grows, which is a good thing.
 
+why chose NN. explain how it works. choice of architecture
+
 ##Analysis of game
 Do some graph based on data.txt's target variable, observe time effects, wins evolution
+Proof of convergence
+
+The following plots show the evolution the robot's performance during the learning phase. Recall that the robot updates its parameters every 100 (MIGHT CORRECT) games. The green line corresponds to the proportion of won games for the last 100 games The red line corresponds to the proportion of lost games for the last 100 games
+
+```{r,echo=F}
+#show in grid, different epsilons for 1000 games, 10000 also?
+setwd('/Users/Thomas/git/thesis/reports/')
+
+plotsmthg = function(what, nbg, random, colour,yrange){
+  games = seq(nbg/10,nbg,nbg/10)
+  d = read.csv(paste0(nbg,'games_epsilon',random,'.txt'), header=F)
+  plot(games, d[,what], type='l', main = paste0('Randomness of the oponent=',random), xlab='Number of games', ylab='', bty='n', col=colour,ylim=yrange)
+}
+
+plotsmthg(1,100,0.99,'green',range(0,1))
+par(new=T)
+plotsmthg(2,100,0.99,'red',range(0,1))
+par(new=F)
+plotsmthg(3,100,0.99,'black',range(3,4))
+```
+
+The last plot shows the average number of moves before winning for the last 100 games.
+
+#Notice after 100 games, able to play "against" image if move easy, like last action
+
+#Results/other applications
+
+#References
+http://people.inf.elte.hu/lorincz/Files/RL_2006/SuttonBook.pdf
+
+http://www0.cs.ucl.ac.uk/staff/D.Silver/web/Teaching_files/FA.pdf
