@@ -10,46 +10,51 @@ header-includes: \usepackage{bm}
 ---
 
 #General principle
+Explain how it works in sentences
 
 \newcommand{\IND}[1][1]{\STATE\hspace{#1\algorithmicindent}}
 \begin{algorithm*}
 \caption{General version}
 \begin{algorithmic}
-\STATE$\textbf{initialize:}$
-\IND$f() \text{: regressor function}$
-\IND$x_t \text{: current stochastic environment}$
-\IND$\Omega_t(x_t) \text{: set of possible actions}$
-\IND$s(x_t) \text{: signal activated or not by the stochastic environment, initialized to 0}$
-\IND$W^*=W_0\text{: random weights for the regressor}$
-\IND$X\text{: empty training feature matrix}$
-\IND$y\text{: empty training target vector}$
-\IND$A\text{: empty feature matrix for simulated actions}$
+\STATE$\text{Initialized:}$
+\IND$X\text{: empty }m\text{-columns feature matrix}$
+\IND$y\text{: empty target vector}$
+\IND$X'\text{: empty }m\text{-columns simulated states matrix}$
+\IND$w^*=w_0\text{: random weights for the regressor}$
 \IND$\bm{\gamma} \in [0,1] \text{ discount rate}$
 \IND$\Delta = 0 \text{: number of actions}$
-\STATE$\textbf{while } \text{the learning process is on:}$
+\STATE$\text{Other variables:}$
+\IND$f() \text{: regressor function}$
+\IND$m \text{: number of features}$
+\IND$p_t(x^*) \text{: stochastic process, function of the last existing chosen state}$
+\IND$x_t(p_t) \in {\rm I\!R^m} \text{: current state vector}$
+\IND$\Omega_t(x_t) \text{: set of possible actions}$
+\IND$s(x_t) \in {\rm I\!R} \text{: signal value triggered by the modified state}$
+\STATE$\textbf{WHILE } \text{the learning process is on:}$
 \IND$\text{record }x_t$
-\IND$A \text{ = empty matrix}$
-\IND$\textbf{for } a' \text{ simulated action in } \Omega_t(x_t)$
-\IND[2]$A.append(a')$
-\IND$a^*=\arg\max_{a' \in A} f(W^*,A)$
-\IND$X.append(a^*)$
-\IND$\textbf{if } s(a^*) \text{ != } 0 \text{ :}$
-\IND[2]$\textbf{for } a \text{ in } \Delta \text{:}$
-\IND[3]$value = \gamma^{a-1}s(a^*)$
-\IND[3]$y.append(value)$
-\IND[3]$W^* := \arg\min_{W}(l(f(W,X),y))$
-\IND[3]$\Delta = 0$
-\IND$\textbf{else} \text{:}$
+\IND$X' := \text{ empty matrix}$
+\IND$\textbf{FOR } x' \text{ in } \Omega_t(x_t)\text{:}$
+\IND[2]$\text{append } x' \text{ to } X'$
+\IND$x^*:=\arg\max_{x' \in X'} f(w^*,X')$
+\IND$\text{append } x^* \text{ to } X$
+\IND$\textbf{IF } s(x^*) \text{ != } 0 \text{ :}$
+\IND[2]$\textbf{FOR } \delta \text{ in } 1\text{:}\Delta \text{:}$
+\IND[3]$value = \gamma^{\delta-1}s(x^*)$
+\IND[3]$\text{append } value \text{ to } y$
+\IND[2]$w^* := \arg\min_{w}(l(f(w,X),y))$
+\IND[2]$\Delta := 0$
+\IND$\textbf{ELSE} \text{:}$
 \IND[2]$\Delta \text{ += } 1$
-\IND[2]$\text{continue}$
 \end{algorithmic}
 \end{algorithm*}
 
-The algorithm assumes two underlying function:
+Explanation of some elements:
+
+- $\Omega$ can be set deterministically. In the context of a game, there is a well determined space of actions. It also can be infinite. A mobile robot can explore the real 3D world in almost infinite ways.
+
+- The signal value function assumes the existence of one or multiple sensors, or the manual assignement of a value. It is conditional on the current environment and takes positive value if a "gain" is sensed, and negative value if a "pain" is sensed.
 
 - The minimization process is a tedious part of the algorithm. When dealing with unstructured features, we might want to use a neural network-type regressor. In that case, $W$, the set of the hidden layers' weights is initialized with the values of the previous iterations. The optimal $W^*$ should converge as $X$ grows if there are patterns in the stochastic processes.
-
-- The signal function assumes the existence of one or multiple sensors, or the manual assignement of a value. It is conditional on the current environment and takes positive value if a "gain" is sensed, and negative value if a "pain" is sensed.
 
 ###Remark on the function of the regressor's role
 The regressor's task is not to predict accurately, even though it is closely related, but rather to give the "real value" of an action.
