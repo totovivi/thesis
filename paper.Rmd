@@ -20,7 +20,7 @@ This entity needs two abilities: learning from its own actions and recognising t
 
 ##1.1 Learning from its own actions
 
-RL emerges easily from other Machine Learning techniques as the training is done by acting. It uses training information that *evaluates* the actions taken rather than *instructs* by giving correct actions are faced repeatedly with a choice among n different options, or actions. Such setting has its roots in the *n-armed bandit problem* where after each choice you receive a numerical reward chosen from a stationary probability distribution that depends on the selected action. The objective is to maximize the expected total reward over all the episodes. The learner evolves in a particular state and records what actions lead to a maximal gain. In most cases the goal is to maximise a long term gain by taing a correct course of actions. These policies can be more or less explicit and the proposed algorithm would qualified as *off-policy*.
+RL emerges easily from other Machine Learning techniques as the training is done by acting. It uses training information that *evaluates* the actions taken rather than *instructs* by giving correct actions are faced repeatedly with a choice among n different options, or actions. Such setting has its roots in the *n-armed bandit problem* where after each choice you receive a numerical reward chosen from a stationary probability distribution that depends on the selected action. The objective is to maximize the expected total reward over all the episodes. The learner evolves in a particular state and records what actions lead to a maximal gain. In most cases the goal is to maximise a long term gain by taing a correct course of actions. These policies can be more or less explicit. I our case, the proposed algorithm would be qualified as *off-policy*.
 
 An RL learner is thus particularly dependent on a state signal that succeeds in retaining all relevant information, a *Markov* state. For example, a checkers position (the current configuration of all the pieces on the board) would serve as a Markov state because it summarizes everything important about the complete sequence of positions that led to it. Much of the information about the sequence is lost, but all that really matters for the future of the game is retained. 
 
@@ -44,7 +44,7 @@ The Deep Q networks (DQN) are close to what I propose. This consists in an off-p
 
 Hopefully the proposed algorithm offers even more flexibility than the evoked algorithms. That would be thanks to removing the assumption that the state's values are permanently monitored during the training phase. This is possible by the implementation of a *signal function*. Its role is to detect a preset objective signal thanks to a deterministic function or a well tuned sensor. The aim is notably to allow the algorithm to be practial when evaluating non-idealized states - unlike video game screenshots - involving stochastic perturbations - such as real world pictures or videos.
 
-#3 Proposed principle
+#3 Proposed algorithm
 
 ##3.1 Description
 To describe the proposed principle, we are going to replicate chronologically an episode of the algorithm in action.
@@ -137,7 +137,7 @@ With this function, triggering a new signal can take time. But the learner can s
 
 include idea RL+regressor (Gabor)
 
-##4.1 Convergence for equivalent underlying states
+##4.1 Convergent estimates for equivalent underlying states
 
 The convergence of the algorithm's evaluations is closely linked to the performance of the regressor function at extracting underlying patterns between states and values, assuming however that this relationship exists.
 

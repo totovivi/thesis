@@ -1,0 +1,86 @@
+---
+output: pdf_document
+fontsize: 12pt
+header-includes: \usepackage{bm}
+         \usepackage{bbm}
+         \usepackage{algorithmic}
+         \usepackage{algorithm}
+---
+
+#1 Introduction
+
+##1.1 Learning from chosen actions
+
+##1.2 Recognition of real images patterns
+
+#2 Litterature review
+
+#3 Proposed algorithm
+
+##3.1 Description
+
+##3.2 Remarks
+
+###3.2.1 Regressor function
+
+###3.2.2 Signal function and discounted values
+
+#4 Asymptotic behaviour of the algorithm
+
+##4.1 Convergent estimates for equivalent underlying states
+
+##4.2 Long term gain maximization
+
+#5 Implementation for the tic-tac-toe game 
+
+##5.1 Particularities of the implementation
+
+##5.2 Necessary adjustments
+
+##5.3 Performance analysis
+
+#6 Conclusion
+
+#7 References
+
+\newpage
+
+\newcommand{\IND}[1][1]{\STATE\hspace{#1\algorithmicindent}}
+\begin{algorithm*}
+\caption{}
+\begin{algorithmic}
+\STATE$\text{Initialized variables:}$
+\IND$X\text{: empty }m\text{-columns feature matrix}$
+\IND$y\text{: empty target vector}$
+\IND$w^*=w_0\text{: random weights for the regressor}$
+\IND$\bm{\gamma} \in [0,1] \text{ discount rate}$
+\IND$\Delta = 0 \text{: number of actions}$
+\STATE$\text{Other variables:}$
+\IND$f() \text{: regressor function}$
+\IND$m \text{: number of features}$
+\IND$p_t(x^*) \text{: stochastic process, function of the last existing chosen state}$
+\IND$X'\text{: }m\text{-columns simulated states matrix}$
+\IND$x_t(p_t) \in {\rm I\!R^m} \text{: current state vector}$
+\IND$\Omega_t(x_t) \text{: set of possible actions}$
+\IND$\epsilon \text{: randomness rate}$
+\IND$s(x^*) \in {\rm I\!R} \text{: signal value potentially triggered by the modified state}$
+\STATE$\textbf{WHILE } \text{the learning process is on:}$
+\IND$\text{record }x_t$
+\IND$X' := \text{: empty }m\text{-columns matrix}$
+\IND$\textbf{FOR } x' \text{ in } \Omega_t(x_t)\text{:}$
+\IND[2]$\text{append } x' \text{ to } X'$
+\IND$\text{With probability } 1-\epsilon$
+\IND[2]$x^*:=\arg\max_{x' \in X'} f(w^*,X')$
+\IND$\text{With probability } \epsilon$
+\IND[2]$x^*:=\text{random sample }x' \in X'$
+\IND$\text{append } x^* \text{ to } X$
+\IND$\textbf{IF } s(x^*) \text{ != } 0 \text{ :}$
+\IND[2]$\textbf{FOR } \delta \text{ in } 1\text{:}\Delta \text{:}$
+\IND[3]$value = d(\gamma, \Delta, \delta, s(x^*))$
+\IND[3]$\text{append } value \text{ to } y$
+\IND[2]$w^* := \arg\min_{w}(l(f(w,X),y))$
+\IND[2]$\Delta := 0$
+\IND$\textbf{ELSE} \text{:}$
+\IND[2]$\Delta \text{ += } 1$
+\end{algorithmic}
+\end{algorithm*}
