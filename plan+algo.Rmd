@@ -11,7 +11,7 @@ header-includes: \usepackage{bm}
 
 ##1.1 Learning from chosen actions
 
-##1.2 Recognition of real images patterns
+##1.2 Pattern recognition
 
 #2 Litterature review
 
@@ -25,7 +25,7 @@ header-includes: \usepackage{bm}
 
 ###3.2.2 Signal function and discounted values
 
-#4 Asymptotic behaviour of the algorithm
+#4 Behaviour of the algorithm
 
 ##4.1 Convergent estimates for equivalent underlying states
 
@@ -65,7 +65,7 @@ header-includes: \usepackage{bm}
 \IND$\epsilon \text{: randomness rate}$
 \IND$s(x^*) \in {\rm I\!R} \text{: signal value potentially triggered by the modified state}$
 \STATE$\textbf{WHILE } \text{the learning process is on:}$
-\IND$\text{record }x_t$
+\IND$\text{record }x_t(p_t)$
 \IND$X' := \text{: empty }m\text{-columns matrix}$
 \IND$\textbf{FOR } x' \text{ in } \Omega_t(x_t)\text{:}$
 \IND[2]$\text{append } x' \text{ to } X'$

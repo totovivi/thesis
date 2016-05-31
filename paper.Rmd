@@ -26,7 +26,7 @@ An RL learner is thus particularly dependent on a state signal that succeeds in 
 
 A reinforcement learning task that satisfies the Markov property is called a Markov Decision Process (MDP). If the state and action spaces are finite, it is possible the MDP framework notably formalizes the probability that a state occurs given a previous state an action, and the probability of reward after the new state occured.
 
-##1.2 Recognising real world situations
+##1.2 Pattern recognition
 
 Equipping a reinforcement learner with an approximator function has two benefits: the ability to provide an evaluation of an infinite set of states and recognise the a finite set of states having an infinite set of possible representations. In the example below, as humans we are able to recognise the same underlying situation and take action: if I learner how to make spaghettis at home, I am able to reproduce it at my friend's place. In a similar manner, we would like our learner to overcome its imperfect sensors to learn how to behave in the long term to maximize its gain. This is made possible notably by regressor and classifier functions that take particularly well advantage of naturally generated data such as images and sounds.
 
@@ -69,10 +69,9 @@ Here is a formal version of the algorithm:
 \begin{algorithm*}
 \caption{}
 \begin{algorithmic}
-\STATE$\text{Initialized:}$
+\STATE$\text{Initialized variables:}$
 \IND$X\text{: empty }m\text{-columns feature matrix}$
 \IND$y\text{: empty target vector}$
-\IND$X'\text{: empty }m\text{-columns simulated states matrix}$
 \IND$w^*=w_0\text{: random weights for the regressor}$
 \IND$\bm{\gamma} \in [0,1] \text{ discount rate}$
 \IND$\Delta = 0 \text{: number of actions}$
@@ -80,13 +79,14 @@ Here is a formal version of the algorithm:
 \IND$f() \text{: regressor function}$
 \IND$m \text{: number of features}$
 \IND$p_t(x^*) \text{: stochastic process, function of the last existing chosen state}$
+\IND$X'\text{: }m\text{-columns simulated states matrix}$
 \IND$x_t(p_t) \in {\rm I\!R^m} \text{: current state vector}$
 \IND$\Omega_t(x_t) \text{: set of possible actions}$
 \IND$\epsilon \text{: randomness rate}$
-\IND$s(x^*) \in {\rm I\!R} \text{: signal value triggered by the modified state}$
+\IND$s(x^*) \in {\rm I\!R} \text{: signal value potentially triggered by the modified state}$
 \STATE$\textbf{WHILE } \text{the learning process is on:}$
-\IND$\text{record }x_t$
-\IND$X' := \text{ empty matrix}$
+\IND$\text{record }x_t(p_t)$
+\IND$X' := \text{: empty }m\text{-columns matrix}$
 \IND$\textbf{FOR } x' \text{ in } \Omega_t(x_t)\text{:}$
 \IND[2]$\text{append } x' \text{ to } X'$
 \IND$\text{With probability } 1-\epsilon$
@@ -124,16 +124,20 @@ One interesting aspect is the role of the regressor function. Contrarily to typi
 The signal function allows for minimal assumptions on the basic abilities of the learner. While most approximation-based reinforcement learning algorithms suppose the permanent presence of a value monitoring function, here we only assume the presence of a discrete, time-independent sensor triggering one or more values.
 
 The use of this simple sensor is made possible by the use of discounted
-values. Even if not every action is monitored during an episode, each step still takes a value at the end of the episodes. In that process, tuning correctly the $\gamma$ parameter is important. In the following figure, we represent two sets of actions that to respectively a gain, and a loss. 
+values. Even if not every action is monitored during an episode, each step still takes a value at the end of the episodes. In that process, tuning correctly the $\gamma$ parameter is important. In the following figure, we represent a set of actions that to a gain (signal = 1 here). The discount function that we apply is $\gamma^{\Delta-\delta}s(x^*)$.
 
-for gain and loss, display same gradient: from red to green
-SHOW IMAGE TREE WITH DIFFERENT DISCOUNT FACTORS
+\begin{figure}
+\begin{center}
+\includegraphics[width=200pt]{/Users/Thomas/git/thesis/discounts.png}
+\caption{Different discount rates affecting intermediary states}
+\end{center}
+\end{figure}
 
-We see that with a higher discount factor, a stronger emphasis is put on the final result of the set of actions. In some cases, $\gamma$ should be set considering that two intermediary actions can lead to both a gain and a loss.
+In the first case $\gamma=0.7$, in the second case $\gamma=0.3$. We see that with a larger discount factor, more emphasis is put on the final result of the set of actions. In some cases, $\gamma$ should be set considering that two intermediary actions can lead to both a gain and a loss.
 
 With this function, triggering a new signal can take time. But the learner can still look for best discounted value according to the current state. We then benefit from something common to RL algorithms: the use of intermediary objectives.
 
-#4 Asymptotic behaviour of the algorithm
+#4 Behaviour of the algorithm
 
 include idea RL+regressor (Gabor)
 
