@@ -24,7 +24,7 @@ from PIL import Image, ImageEnhance, ImageDraw, ImageOps
 from lasagne import layers as lasagne, nonlinearities as nl
 import glob
 
-smalls = '/Users/Thomas/git/thesis/images6/smalls'
+smalls = '/Users/Thomas/git/thesis/images7/smalls'
 os.chdir(smalls)
 Xs = []
 Os = []
@@ -81,19 +81,18 @@ class Learner:
         s.player = player
         s.gamehist = []
         s.traced = False
+        s.net = None
         
         if player == 1:
             if alpha == None: s.alpha = 0.8
             else: s.alpha = alpha
-            if epsilon == None: s.epsilon = 0.99
+            if epsilon == None: s.epsilon = 0.99 #sqrt(other epsilon)
             else: s.epsilon = epsilon
         else: 
             if alpha == None: s.alpha = 0.8
             else: s.alpha = alpha
-            if epsilon == None: s.epsilon = 0.01
+            if epsilon == None: s.epsilon = 0.0 #propto size data.txt (http://stackoverflow.com/questions/2104080/how-to-check-file-size-in-python)
             else: s.epsilon = epsilon
-
-        s.net = None
 
     def nn_train(s, X, y):
         n = X.shape[0]
@@ -161,7 +160,13 @@ class Learner:
         row1 = np.hstack((s.stateobs(state)[0][0], s.stateobs(state)[1][0], s.stateobs(state)[2][0]))
         row2 = np.hstack((s.stateobs(state)[3][0], s.stateobs(state)[4][0], s.stateobs(state)[5][0]))
         row3 = np.hstack((s.stateobs(state)[6][0], s.stateobs(state)[7][0], s.stateobs(state)[8][0]))
-        return np.vstack((row1, row2, row3))
+        rows = np.vstack((row1, row2, row3))
+        #change the brightness randomly:
+        rows += random.sample(range(-100,0), 1)
+        #change the contrast randomly:
+        rows += random.sample(range(-100,0), 1)
+        rows[rows > 255] = 0 ; rows[rows < 0] = 0
+        return rows
 
     def value(s, state, action): #measures the gain after a particular step
         "Assumption: Game has not been won by other player"
@@ -292,9 +297,9 @@ class Game:
             img = ImageOps.autocontrast(img,ignore=range(0,135)+range(230,256))
             img = ImageOps.mirror(img)
             bright = ImageEnhance.Brightness(img)
-            img = bright.enhance(1.5)
+            img = bright.enhance(4.4)
             contrast = ImageEnhance.Contrast(img)
-            #img = contrast.enhance(2)
+            img = contrast.enhance(4.5)
             newgimg = np.array(img)
             img.save('small_game.png')
             newgimg = scipy.misc.imread('small_game.png', flatten=False, mode='L')
@@ -313,6 +318,12 @@ class Game:
                     del s.actions[p]
             else:
                 s.played = []
+
+                #TEMPORARY
+                s.actions = [(0,0),(0,1),(1,0),(1,2),(2,0),(2,1),(2,2)]
+                newgimg[0:3, 6:9] = s.O
+                newgimg[3:6, 3:6] = s.O
+
             scipy.misc.imsave('temp.png', newgimg)
 
             s.tries = np.empty((0,9*dim**2))
@@ -321,6 +332,7 @@ class Game:
                 x = (a[0]+1)*dim ; y = (a[1]+1)*dim
                 temp[x-dim:x, y-dim:y] = s.O
                 s.tries = np.append(s.tries, [temp.flatten()], axis=0)
+            scipy.misc.imsave('temp.png', np.reshape(s.tries[1], (-1, 9)))
 
             neural_loaded = pickle.load(open('/Users/Thomas/git/thesis/nn.pkl', 'rb'))
             pred = neural_loaded.predict(s.tries)
@@ -494,12 +506,11 @@ class Selfplay:
             #learn from updated matrix every selfplays/10 games
             if s.games %(selfplays/10) == 0 or s.games == selfplays:
                 if s.state.full() or s.state.won(1) or s.state.won(2):
-
                     propwin = s.wins/s.games
                     proploss = s.losses/s.games
                     meanwinsteps = reduce(lambda x, y: x + y, s.winsteps)/len(s.winsteps)
                     obs = [propwin, proploss, meanwinsteps]
-                    print 'obs ', obs
+                    print 'propwins, proploss,  meanwinsteps: ', obs
                     report = '/Users/Thomas/git/thesis/reports/'+str(selfplays)+'games_epsilon'+str(s.other.epsilon)+'.txt'
                     if os.path.exists(report):
                         with open(report, 'a') as f:
@@ -510,7 +521,6 @@ class Selfplay:
                             w = csv.writer(f)
                             w.writerow(obs)
 
-                    print 'wins proportion: ', propwin
                     #learn from appended data and save model
                     D = np.genfromtxt(data, skip_footer=1)
                     Dx = D[:,0:9*dim**2]
@@ -530,7 +540,7 @@ if __name__ == "__main__":
     p2 = Learner(player=2)
     g = Game()
 
-g.selfplay(selfplays) #train against a Q-learning robot
+#g.selfplay(selfplays) #train against a Q-learning robot
 
-#g(new=True) #first round of a game
+g(new=True) #first round of a game
 #g(new=False) #other round than first

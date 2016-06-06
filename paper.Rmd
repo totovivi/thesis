@@ -123,6 +123,8 @@ One interesting aspect is the role of the regressor function. Contrarily to typi
 
 The signal function allows for minimal assumptions on the basic abilities of the learner. While most approximation-based reinforcement learning algorithms suppose the permanent presence of a value monitoring function, here we only assume the presence of a discrete, time-independent sensor triggering one or more values.
 
+We can observe a similarity between the backpropagation mechanism of artificial neural networks. There is an activation and a backprogpagation of the values.
+
 The use of this simple sensor is made possible by the use of discounted
 values. Even if not every action is monitored during an episode, each step still takes a value at the end of the episodes. In that process, tuning correctly the $\gamma$ parameter is important. In the following figure, we represent a set of actions that to a gain (signal = 1 here). The discount function that we apply is $\gamma^{\Delta-\delta}s(x^*)$.
 
@@ -236,6 +238,12 @@ The last plot shows the average number of moves before winning for the last 100 
 PLOT AVG MOVES
 
 The learner can only win in three or four moves. Against a random player, we that the learner has an average number of moves to win closer to three with more games.
+
+###5.4 Improvements
+
+Convolutional layer
+
+Detect all illegal moves
 
 #6 Conclusion
 

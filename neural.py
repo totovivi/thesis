@@ -26,13 +26,6 @@ def neural_train(X, y):
 	    w0 += X.T.dot(delta1)
 	    w1 += l1.T.dot(delta2)
 
-	print 'l1',l1.shape
-	print 'l2',l2.shape
-	print 'delta1',delta1.shape
-	print 'delta2',delta2.shape
-	print 'w1',l1.shape
-	print 'w0',w0.shape
-
 	return (w0, w1, l2)
 
 def neural_test(X, w0, w1):
