@@ -178,6 +178,9 @@ REVALUE SO LOSS = -1, DRAW=0
 
 ##5.1 Particularities of the implementation
 
+The chosen regressor is an artificial neural network. I chose this type of regressor as I believe it supports the complex relationship between the pixels representing a state and the value of this state. A sufficiently complex structure is thus able to handle the very large number of ways to represent a game combined with the many game combinations. In this implementation, the network is has the following form:
+PICTURE NN
+
 The stochastic state $x_t$ is resulting from another player's move represented on an image as seen above. In terms of strategy optimization, here the learner would have to think ahead. The states here are the fruit of *rival* actions, either from a human player or from another robot. And in this implmentation, the learner plays after the rival, so it can win either in three or four moves.
 
 The signal function is determincally set by a human. It triggers the values $1$ if the learner wins, $-0.1$ if there is a draw and $-1$ if it loses or if it does an illegal move. Notice that an illegal move corresponds only to playing on top of the other player. The learner here knows where it last played.
@@ -186,8 +189,9 @@ In this implementation, the discount function $d(\gamma, \Delta, \delta, s(x^*))
 $$\gamma^{\Delta-\delta}s(x^*)$$
 More precisely, I picked $\gamma=0.3$ as it yields the same value for an early move. The discounted value for moves leading to a win thus are: 1, 0.3, 0.09 and 0.081. For a draw: -0.1, -0.01, -0.001 and -0.0001. For a loss: -1, -0.3, -0.09 and -0.081. For an illegal move, only the signal value is given to the last move.
 
-The chosen regressor is an artificial neural network. I chose this type of regressor as I believe it supports the complex relationship between the pixels representing a state and the value of this state. A sufficiently complex structure is thus able to handle the very large number of ways to represent a game combined with the many game combinations. In this implementation, the network is has the following form:
-PICTURE NN
+I implemented an adaptative randomness factor. It has the very *ad hoc* form 
+$$\epsilon = 50000/log_{10}(S)^6,$$
+where $S$ is the size of the data in bytes. I chose this formula so it equals 99% for a data corresponding to 10000 games. The other learner is penalized and has $\epsilon = 100000/log_{10}(S)^6$ so our learner has time to learn how to win.
 
 ##5.2 Necessary adjustments
 
