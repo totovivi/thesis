@@ -179,7 +179,12 @@ REVALUE SO LOSS = -1, DRAW=0
 ##5.1 Particularities of the implementation
 
 The chosen regressor is an artificial neural network. I chose this type of regressor as I believe it supports the complex relationship between the pixels representing a state and the value of this state. A sufficiently complex structure is thus able to handle the very large number of ways to represent a game combined with the many game combinations. In this implementation, the network is has the following form:
-PICTURE NN
+
+\begin{figure}
+\begin{center}
+\includegraphics[width=350pt]{/Users/Thomas/git/thesis/NNview.png}
+\end{center}
+\end{figure}
 
 The stochastic state $x_t$ is resulting from another player's move represented on an image as seen above. In terms of strategy optimization, here the learner would have to think ahead. The states here are the fruit of *rival* actions, either from a human player or from another robot. And in this implmentation, the learner plays after the rival, so it can win either in three or four moves.
 

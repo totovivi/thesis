@@ -110,14 +110,14 @@ class Learner:
                     Layer("Sigmoid", units=200),
                     Layer("Sigmoid")],
                 n_iter=200,
-                learning_rate=0.00005,
+                learning_rate=0.0001,
                 parameters=params,
                 valid_set=cv,
                 learning_rule='rmsprop',
                 f_stable=0.0001,
                 verbose=True,
                 batch_size=200,
-                n_stable=10)
+                n_stable=7)
 
         return s.net.fit(X, y)
             
@@ -221,8 +221,8 @@ class Learner:
             log_size = np.log10(data_size)
         else: log_size = 1
 
-        if s.player == 1: s.epsilon = min([1, 100000/(log_size**6)]) #we penalize the Q-learner. It would be too strong at the begining!
-        else: s.epsilon = min([1, 50000/(log_size**6)])
+        if s.player == 1: s.epsilon = min([1, 120000/(log_size**6)]) #we penalize the Q-learner. It would be too strong at the begining!
+        else: s.epsilon = min([1, 30000/(log_size**6)])
 
         split = np.random.choice(2, 1, p=[1 - s.epsilon, s.epsilon]).tolist()[0]
         if split == 1: return rc
@@ -417,14 +417,10 @@ class Selfplay:
                     init = s.state[b]
                     s.state[b] = 2
                     ratio = round((s.games+1)/selfplays, 0)
-                    if ratio <= .2:
-                        j = 4
-                    elif ratio <= .4:
-                        j = 3
-                    elif ratio <= .5:
-                        j = 2
-                    else:
-                        j = 1
+                    if ratio <= .2: j = 4
+                    elif ratio <= .4: j = 3
+                    elif ratio <= .5: j = 2
+                    else: j = 1
                     for i in random.sample(range(0,4), j):
                         rot1 = np.rot90(s.state, i)
                         s.X1 = np.append(s.X1, [s.learner.fullimg(rot1).flatten()], axis=0)
@@ -458,23 +454,17 @@ class Selfplay:
             if s.state.full() or s.state.won(1) or s.state.won(2):
                 for m in range(1, s.moves+1):
                     if s.state.won(1):
-                        if m == s.moves:
-                            s.val = 0
-                        else:
-                            s.val = (1 - s.gamma) ** m
-                    elif s.state.won(2):
-                        s.val = s.gamma ** (s.moves - m)
-                    else:
-                        s.val = 0.5 * s.gamma ** (s.moves - m)
+                        if m == s.moves: s.val = 0
+                        else: s.val = (1 - s.gamma) ** m
+                    elif s.state.won(2): s.val = s.gamma ** (s.moves - m)
+                    else: s.val = 0.5 * s.gamma ** (s.moves - m)
                     s.y_game = np.append(s.y_game, [s.val], axis=0)
 
                 s.y_game = np.repeat(s.y_game, 4, axis=0) #duplicate each row 4 times
                 s.y2 = np.concatenate((s.y2, s.y_game), axis=0)
                 s.y_game = np.empty((0))
-                if s.state.full() or s.state.won(1):
-                    s.moves = 1
-            else:
-                s.moves += 1
+                if s.state.full() or s.state.won(1): s.moves = 1
+            else: s.moves += 1
 
             print s.state
 
