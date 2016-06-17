@@ -32,7 +32,7 @@ Ns = []
 maxi = 0
 pred = 0
 who = 'none'
-dim = 3
+dim = 5
 selfplays = 1000
 for i in os.listdir(smalls):
     if i.startswith('X'):
@@ -115,9 +115,9 @@ class Learner:
                 valid_set=cv,
                 learning_rule='rmsprop',
                 f_stable=0.0001,
-                verbose=True,
+                verbose=False,
                 batch_size=200,
-                n_stable=7)
+                n_stable=10)
 
         return s.net.fit(X, y)
             
@@ -158,10 +158,10 @@ class Learner:
         row3 = np.hstack((s.stateobs(state)[6][0], s.stateobs(state)[7][0], s.stateobs(state)[8][0]))
         rows = np.vstack((row1, row2, row3))
         #change the brightness randomly:
-        rows += random.sample(range(-100,0), 1)
+        rows += random.sample(range(-70,0), 1)
         #change the contrast randomly:
-        rows += random.sample(range(-100,0), 1)
-        rows[rows > 255] = 0 ; rows[rows < 0] = 0
+        rows += random.sample(range(-70,0), 1)
+        rows[rows > 255] = 255 ; rows[rows < 0] = 0
         return rows
 
     def value(s, state, action): #measures the gain after a particular step
@@ -221,8 +221,8 @@ class Learner:
             log_size = np.log10(data_size)
         else: log_size = 1
 
-        if s.player == 1: s.epsilon = min([1, 120000/(log_size**6)]) #we penalize the Q-learner. It would be too strong at the begining!
-        else: s.epsilon = min([1, 30000/(log_size**6)])
+        if s.player == 1: s.epsilon = min([1, 180000/(log_size**6)]) #we penalize the Q-learner. It would be too strong at the begining!
+        else: s.epsilon = min([1, 20000/(log_size**6)])
 
         split = np.random.choice(2, 1, p=[1 - s.epsilon, s.epsilon]).tolist()[0]
         if split == 1: return rc
@@ -320,9 +320,9 @@ class Game:
                 s.played = []
 
                 #TEMPORARY
-                s.actions = [(0,0),(0,1),(1,0),(1,2),(2,0),(2,1),(2,2)]
-                newgimg[0:3, 6:9] = s.O
-                newgimg[3:6, 3:6] = s.O
+                #s.actions = [(0,0),(0,1),(1,0),(1,2),(2,0),(2,1),(2,2)]
+                #newgimg[0:3, 6:9] = s.O
+                #newgimg[3:6, 3:6] = s.O
 
             scipy.misc.imsave('temp.png', newgimg)
 
