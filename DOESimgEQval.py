@@ -4,7 +4,7 @@ import scipy
 from scipy import misc
 import scipy.misc
 from PIL import Image, ImageEnhance
-dim = 5
+dim = 3
 
 D = np.genfromtxt('/Users/Thomas/Dropbox/DS/thesis/data.txt', skip_footer=1)
 for i in range(0,100):

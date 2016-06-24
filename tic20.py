@@ -1,13 +1,12 @@
-#TO DO:
-    #IMG DISTORT: http://stackoverflow.com/questions/14177744/how-does-perspective-transformation-work-in-pil
-    #convolutional
-    #best: danielnouri.org/notes/2014/12/17/using-convolutional-neural-nets-to-detect-facial-keypoints-tutorial/
-    #One advantage is that training converges much faster; maybe four times faster in this case. The second advantage is that it also helps get better generalization; pre-training acts as a regularizer. 
+#IMG DISTORT: http://stackoverflow.com/questions/14177744/how-does-perspective-transformation-work-in-pil
+#convolutional
+#best: danielnouri.org/notes/2014/12/17/using-convolutional-neural-nets-to-detect-facial-keypoints-tutorial/
+#One advantage is that training converges much faster; maybe four times faster in this case. The second advantage is that it also helps get better generalization; pre-training acts as a regularizer. 
 
 from __future__ import division
 from random import sample
 import datetime
-import random
+import random&
 import csv
 import numpy as np
 from numpy import diag
@@ -32,7 +31,7 @@ Ns = []
 maxi = 0
 pred = 0
 who = 'none'
-dim = 5
+dim = 3
 selfplays = 1000
 for i in os.listdir(smalls):
     if i.startswith('X'):
@@ -130,7 +129,7 @@ class Learner:
         for i in xrange(3):
             for j in xrange(3):
                 #if a given position in the given state
-                #is still empty then add it as a possible action 
+                #is still empty then add it as a possible action
                 if state[i,j] == 0:
                     res.append((i,j))
         return res
@@ -158,9 +157,9 @@ class Learner:
         row3 = np.hstack((s.stateobs(state)[6][0], s.stateobs(state)[7][0], s.stateobs(state)[8][0]))
         rows = np.vstack((row1, row2, row3))
         #change the brightness randomly:
-        rows += random.sample(range(-70,0), 1)
+        #rows += random.sample(range(-40,0), 1)
         #change the contrast randomly:
-        rows += random.sample(range(-70,0), 1)
+        #rows += random.sample(range(-70,0), 1)
         rows[rows > 255] = 255 ; rows[rows < 0] = 0
         return rows
 
@@ -221,7 +220,7 @@ class Learner:
             log_size = np.log10(data_size)
         else: log_size = 1
 
-        if s.player == 1: s.epsilon = min([1, 180000/(log_size**6)]) #we penalize the Q-learner. It would be too strong at the begining!
+        if s.player == 1: s.epsilon = min([1, 150000/(log_size**6)]) #we penalize the Q-learner. It would be too strong at the begining!
         else: s.epsilon = min([1, 20000/(log_size**6)])
 
         split = np.random.choice(2, 1, p=[1 - s.epsilon, s.epsilon]).tolist()[0]
@@ -297,9 +296,9 @@ class Game:
             img = ImageOps.autocontrast(img,ignore=range(0,135)+range(230,256))
             img = ImageOps.mirror(img)
             bright = ImageEnhance.Brightness(img)
-            img = bright.enhance(4.4)
+            img = bright.enhance(2)
             contrast = ImageEnhance.Contrast(img)
-            img = contrast.enhance(4.5)
+            img = contrast.enhance(2)
             newgimg = np.array(img)
             img.save('small_game.png')
             newgimg = scipy.misc.imread('small_game.png', flatten=False, mode='L')
@@ -332,7 +331,7 @@ class Game:
                 x = (a[0]+1)*dim ; y = (a[1]+1)*dim
                 temp[x-dim:x, y-dim:y] = s.O
                 s.tries = np.append(s.tries, [temp.flatten()], axis=0)
-            scipy.misc.imsave('temp.png', np.reshape(s.tries[1], (-1, 9)))
+            scipy.misc.imsave('temp.png', np.reshape(s.tries[1], (-1, dim*3)))
 
             neural_loaded = pickle.load(open('/Users/Thomas/git/thesis/nn.pkl', 'rb'))
             pred = neural_loaded.predict(s.tries)
