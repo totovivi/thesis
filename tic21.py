@@ -107,16 +107,18 @@ class Learner:
 
         s.net = Regressor(
                 layers=[
-                    Convolution("Rectifier", channels=81, kernel_shape=(3,3), pool_shape=(2,2)),
-                    Layer("Sigmoid", units=200),    
-                    Layer("Rectifier", units=200),
+                    Convolution("Rectifier", channels=27, kernel_shape=(3,3), kernel_stride=(2,2)),
+                    Convolution("Rectifier", channels=54, kernel_shape=(2,2), kernel_stride=(1,1)),
+                    #Convolution("Rectifier", channels=27, kernel_shape=(3,3), kernel_stride=(1,1)),
+                    Layer("Sigmoid", units=210),
+                    Layer("Rectifier", units=210),
                     Layer("Sigmoid")],
-                n_iter=50,
-                learning_rate=0.0001,
+                n_iter=100,
+                learning_rate=0.001,
                 parameters=params,
                 valid_set=cv,
                 learning_rule='rmsprop',
-                f_stable=0.0001,
+                f_stable=0.001,
                 verbose=True,
                 batch_size=200,
                 n_stable=10)

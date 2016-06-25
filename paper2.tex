@@ -10,6 +10,7 @@
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
 \usepackage{lmodern}
+\usepackage{amsmath}
 
 \newcommand{\B}[1]{\mathbf{#1}}
 
@@ -35,7 +36,7 @@ I propose an algorithm allowing the automated learning of the best course of act
 
 \section*{Acknowledgment}
 
-I would like to thank my advisor, Professor Gábor Lugosi, for his help and for making himself available. I would also like to thank Gergely Neu, post-doctoral fellow at the Artificial Intelligence Research Group from the Pompeu Fabra University, for sharing his knowledge on reinforcement learning.
+I would like to thank my advisor, Professor Gábor Lugosi, for his help and for making himself available. I would also like to thank Gergely Neu, post-doctoral fellow at the Artificial Intelligence Research Group from the Pompeu Fabra University, for sharing his knowledge.
 
 \section{Introduction}
 
@@ -67,66 +68,58 @@ A modified version of the classical tic-tac-toe robot will provide a good exampl
 
 \section{Literature review}
 
-The proposed algorithm allows to optimize a course of actions in finite and infinite spaces. But it has especially been thought to act based on imperfectly sensed states as described above.
+The proposed algorithm posseses similarities with the concepts that we are presenting in this section. We also are going to show that, to my knowledge, it is a novel approach in approximation-based RL. This would notably be due to the algorithm's minimal requirements for control of the states' values.
 
-A this is where it differs for example from the State-Action-Reward-State-Action algorithm (SARSA). It uses approximations to update the value of a whole set of actions, a policy. SARSA is well suited when the value of each action can be monitored. It notably update the parameters of the approximation function after each movement thanks to a change in value from $t-1$ to $t$, known as a temporal difference. The update includes a gradient term, compute from the difference between the state's value approximation and the real state's value.
+A close classical RL technique to the proposed algorithm, is the the State-Action-Reward-State-Action algorithm (SARSA). It uses approximations to update the value of a whole set of actions, a policy. SARSA is well suited when the value of each action can be monitored. It notably update the parameters of the approximation function after each movement thanks to a change in value from $t-1$ to $t$, known as a temporal difference. The update includes a gradient term, compute from the difference between the state's value approximation and the real state's value. Our algorithm however does not suppose the learning of a whole policy.
 
-The Deep Q networks (DQN) are close to what I propose. This consists in an off-policy algorithm using neural network approximations of the states' value to decide on an action. And as the learner makes better moves, the neural network is fed with more useful information. And thanks to the so called "Experience replay", when training the network, random mini-batches from the replay memory are used instead of the most recent transition. Such efficient implementation makes the DQN very adaptive to different tasks, as demonstrated for the learning of multiple arcade games while using the same network architecture. 
+In that sense, the recent Deep Q networks (DQN) are closer to what is proposed. This off-policy algorithm uses neural network approximations of the states' value to decide on an action. And as the learner makes better moves, the neural network is fed with more useful information. And thanks to its \textit{experience replay}, when training the network, random mini-batches from the replay memory are used instead of the most recent transition. Such efficient implementation makes the DQN very adaptive to different tasks, as demonstrated for the learning of multiple arcade games while using the same network architecture. I also assume such memory device for the proposed algorithm. But I try to have a more flexible approach than this algorithm, which supposes the constant monitoring of the states' values. 
 
-Hopefully the proposed algorithm offers even more flexibility than the evoked algorithms. That would be thanks to removing the assumption that the state's values are permanently monitored during the training phase. This is possible by the implementation of a \textit{signal function}. Its role is to detect a preset objective signal thanks to a deterministic function or a well tuned sensor. The aim is notably to allow the algorithm to be practical when evaluating non-idealized states - unlike video game screen shots - involving stochastic perturbations - such as real world pictures or videos.
+This is done thanks to a mechanism that is close to the True Online Temporal Difference Learning from Seijen et al.. The authors introduced a formal way to assign values in a backward manner to each state of the episode, when the latter ends. This is done in a discounted way so states farther to the end of an episode get a value with a smaller magnitude. In the proposed algorithm, however, as mentioned earlier, we want to avoid using a permanent control of the states' values during the learning phase. It then differs from the mentioned paper as we cannot update our parameters via traces. Instead, the improving estimation of the new states' value is done exclusively via the approximation function.
+
+Hopefully the proposed algorithm offers a greater flexibility than the previous litterature. Removing the assumption that the state's values are permanently monitored during the training phase is made possible by the implementation of a \textit{signal function} coupled with a \textit{discount function}. The role of the first function is to detect an objective signal thanks to a deterministic function or a well tuned sensor. When triggered, it assigns a gain or loss-related value to the final state of the episode. The second function will allow to assign values to each state of a particular episode. This mechanism is supposed to allow a practical use of the algorithm when evaluating non-idealized states - not only video games screen shots - involving stochastic perturbations that are for instance recorded via a visual sensor. 
 
 \section{Algorithm}
 
 \subsection{Description}
 
-I am going to describe chronologically what happens during an episode of the algorithm in action. Note that all the objects containing $X$ or $x$ in their names are $m$-dimensional objects, where $m$ is the number of features representing the considered states.
+We can summarise our setting as a decision process possibly lacking the Markov property. It has the form
+$$\langle \mathcal{X},\Omega, P(\B{x_c},\B{x_{t+1}}), \B{y},s(\B{x_c}),d(\gamma, \Delta, \delta, s(\B{x_c})) \rangle$$
+where $\mathcal{X}$ is a set of finite underlying states, $\Omega$ is the finite set of possible actions, $P(\B{x_c})$ is the probability that the process moves to a new state $\B{x_{t+1}}$ potentially depending on numerous previous states in the episode, $s()$ is the signal function and d() is a the discount function.
 
-The learner observes a new stochastic state $\B{x_t(p_t)}$ - note that this stochastic state can be affected by previous moves from our learner. It then simulates actions within the finite set of possible actions $\Omega(\B{x_t})$. $\Omega(\B{x_t})$ can be set deterministically. For instance, in the context of a game, there is a well determined set of actions that a human can tune in advance. It also can be a subset of an infinite set of actions. For instance, a mobile robot can explore the real 3D world in almost infinite ways. In that case, the set of possible actions has to be restricted somehow, possibly by the time allowed to go in particular direction.
+I am going to describe more details and chronologically what happens during an episode of the algorithm in action. Note that all the objects containing $X$ or $x$ in their names are $m$-dimensional objects, where $m$ is the number of features representing the considered states.
 
-All of these simulated actions are stored in a temporary matrix $\B{X'}$. Each observation in this matrix is going to be evaluated by the a approximation function $f(\B{w^*},\B{X'})$. This function can be a regressor or a classifier which weights $w^*$ are randomly initialized before the first episode. It is going to return approximations of the current state's value. This value is proportional to the learner's closeness to its objective. Among the simulated states, we will then return with probability $1-\epsilon$ the state which has the highest approximated value, $\B{x^*}$. With probability $\epsilon$, we will randomly pick a state from $\B{X'}$. If both cases, we append the returned state to the training set $\B{X}$.
+The learner observes a new stochastic state $\B{x_t}(p_t)$ - note that this stochastic state can be affected by previous moves from our learner. It then simulates actions within the finite set of possible actions $\Omega(\B{x_t})$. $\Omega(\B{x_t})$ can be set deterministically. For instance, in the context of a game, there is a well determined set of actions that a human can tune in advance. It also can be a subset of an infinite set of actions. For instance, a mobile robot can explore the real 3D world in almost infinite ways. In that case, the set of possible actions has to be restricted somehow, possibly by the time allowed to go in particular direction.
 
-The learner possesses a function $s(\B{x^*})$. It returns different values when a particular signal in the state generated by the learner's last move, $\B{x^*}$, is sensed. The value is positive if a \textit{gain} is sensed, and negative value if a \textit{loss} is sensed. At least one value should be potentially triggered. A typical example for $[gain;loss]$ would be respectively $[1;-1]$. While this signal is off, the learner counts the number of actions since the signal was last triggered. When the signal is triggered, the current episode is over. Each action of the episode receives a value given by the discount function $d(\gamma, \Delta, \delta, s(x^*))$ where $\gamma$ is a discount rate, $\Delta$ is the number of actions in the episode and $\delta$ is the index of the action in the episode. For instance, the last action in the episode has $\delta=\Delta$. The function should insure that actions that are closer in time from the triggered signal get values that are closer from $s(\B{x^*})$. Each value of the episode are then appended to the training target vector $\B{y}$. 
+All of these simulated actions are stored in a temporary matrix $\B{X'}$. Each observation in this matrix is going to be evaluated by the a approximation function $f(\B{w},\B{X'})$. This function can be a regressor or a classifier which weights $w$ are randomly initialized before the first episode. It is going to return approximations of the current state's value. This value is proportional to the learner's closeness to its objective. Among the simulated states, we will then return the chosen $\B{x}$, $\B{x_c}$. With probability $1-\epsilon$ it corresponds to the state which has the highest approximated valu and with probability $\epsilon$, it will be a randomly chosen state from $\B{X'}$. If both cases, we append the returned state to the training set $\B{X}$.
 
-We then get a training sample on which are going to apply our approximation function $f(\B{w}, \B{X})$ which this time minimizes the loss $l(f(\B{w}, \B{X}),\B{y})$. From this process, we are going to retain set of parameters corresponding to the minimal loss to update $w^*$. The updated $w^*$ is going to be used in the next episode in order to predict the value of simulated actions.
+The learner possesses a function $s(\B{x_c})$. It returns different values when a particular signal in the state generated by the learner's last move, $\B{x_c}$, is sensed. The value is positive if a \textit{gain} is sensed, and negative value if a \textit{loss} is sensed. At least one value should be potentially triggered. A typical example for $[gain;loss]$ would be respectively $[1;-1]$. While this signal is off, the learner counts the number of actions since the signal was last triggered. When the signal is triggered, the current episode is over. Each action of the episode receives a value given by the discount function $d(\gamma, \Delta, \delta, s(\B{x_c}))$ where $\gamma$ is a discount rate, $\Delta$ is the number of actions in the episode and $\delta$ is the index of the action in the episode. For instance, the last action in the episode has $\delta=\Delta$. The function should insure that actions that are closer in time from the triggered signal get values that are closer from $s(\B{x_c})$. Each value of the episode are then appended to the training target vector $\B{y}$. 
+
+We then get a training sample on which are going to apply our approximation function $f(\B{w}, \B{X})$ which this time minimizes the loss $l(f(\B{w}, \B{X}),\B{y})$. From this process, we are going to retain set of parameters corresponding to the minimal loss to update $w$. The updated $w$ is going to be used in the next episode in order to predict the value of simulated actions.
 
 Algorithm~\ref{alg:algo} is a formal version of the proposed algorithm.
 
 \begin{algorithm}
-\caption{Approximation-based reinforcement learning with signal function}
-\label{alg:algo}
+
 \begin{algorithmic}[1]
 
-\State $m$ : number of features
-\State $\B{X}=\B{X_{\o}}$: empty $m$-columns matrix
-\State $\B{y}=\B{y_{\o}}$: empty target vector
-\State $\B{w^*}=\B{w_0}$: random weights for the regressor
-\State $\gamma \in [0,1]$  discount rate
-\State $\Delta = 0$ : number of actions
-\State $f()$ : regressor function
-\State $p_t(\B{x^*})$: stochastic process, function of the last existing chosen state
-\State $\B{X'}$: $m$-columns simulated states matrix
-\State $\B{x_t(p_t)} \in {\rm I\!R^m}$: current state vector
-\State $\Omega_t(\B{x_t})$ : set of possible actions
-\State $\epsilon$: randomness rate
-\State $s(\B{x^*}) \in {\rm I\!R}$: signal value potentially triggered by the modified state
-
+\vspace{3mm}
 \While{the learning process is on}
-  \State record $\B{x_t(p_t)}$
+  \State record $\B{x_t}(p_t)$
     \State $\B{X'} :=\B{X'_{\o}}$ empty $m$-columns matrix
     \For{$\B{x'}$  in  $\Omega(\B{x_t})$}
       \State append  $\B{x'}$  to  $\B{X'}$
     \EndFor
     \State with probability  $1-\epsilon$
-    \State \hspace{0.5cm} $\B{x^*}:=\arg\max_{\B{x'} \in \B{X'}} \in f(\B{w^*},\B{X'})$
+    \State \hspace{0.5cm} $\B{x_c}:=\arg\max_{\B{x'} \in \B{X'}} \in f(\B{w},\B{X'})$
     \State with probability  $\epsilon$
-    \State \hspace{0.5cm} $\B{x^*}$ := random sample $\B{x'} \in \B{X'}$
-    \State append $\B{x^*}$ to $\B{X}$
-    \If{$s(\B{x^*})$  !=  $0$}
+    \State \hspace{0.5cm} $\B{x_c}$ := random sample $\B{x'} \in \B{X'}$
+    \State append $\B{x_c}$ to $\B{X}$
+    \If{$s(\B{x_c})$  !=  $0$}
       \For{$\delta$  in  $1:\Delta$}
-        \State $v$ = $d(\gamma, \Delta, \delta, s(\B{x^*}))$
+        \State $v$ = $d(\gamma, \Delta, \delta, s(\B{x_c}))$
         \State append  $v$  to  $\B{y}$
        \EndFor
-      \State $\B{w^*} := \arg\min_{\B{w}}(l(f(\B{w},\B{X}),\B{y}))$
+      \State $\B{w} := \arg\min_{\B{w}}(l(f(\B{w},\B{X}),\B{y}))$
       \State $\Delta := 0$
     \Else
       \State $\Delta$ += $1$
@@ -134,6 +127,13 @@ Algorithm~\ref{alg:algo} is a formal version of the proposed algorithm.
 \EndWhile
 
 \end{algorithmic}
+
+\caption{}
+\label{alg:algo}
+
+\vspace{3mm}
+\begin{small} $m$: number of features, $\B{X}=\B{X_{\o}}$: empty $m$-columns matrix, $\B{y}=\B{y_{\o}}$: empty target vector, $\B{w}=\B{w_0}$: random weights for the regressor, $\gamma \in [0,1]$  discount rate, $\Delta = 0$: number of actions, $f()$: regressor function, $p_t(\B{x_c})$: stochastic process, function of the last existing chosen state, $\B{X'}$: $m$-columns simulated states matrix, $\B{x_t}(p_t) \in {\rm I\!R^m}$: current state vector, $\Omega_t(\B{x_t})$: set of possible actions, $\epsilon$: randomness rate, $s(\B{x_c}) \in {\rm I\!R}$: signal value potentially triggered by the modified state \end{small}
+
 \end{algorithm}
 
 \subsection{Remarks} 
@@ -152,11 +152,11 @@ Typically in this paper, we consider real-world representations as states. In ot
 
 The signal function allows to reduce the assumptions on the basic abilities of the learner. While most approximation-based reinforcement learning algorithms suppose the permanent presence of a value-monitoring function, here we only assume the presence of a discrete, time-independent sensor triggering one or more values.
 
-The use of discounted values enables each step to get a value at the end of each episodes. In that process, tuning correctly the $\gamma$ parameter is important. In Figure~\ref{fig:discounts}, we represent a set of actions that to a gain - $s(\B{x^*} = 1$ here, and the discount function that we apply is $\gamma^{\Delta-\delta}s(\B{x^*})$.
+The use of discounted values enables each step to get a value at the end of each episodes. In that process, tuning correctly the $\gamma$ parameter is important. In Figure~\ref{fig:discounts}, we represent a set of actions that to a gain - $s(\B{x_c} = 1$ here, and the discount function that we apply is $\gamma^{\Delta-\delta}s(\B{x_c})$.
 
 \begin{figure}
 \begin{center}
-\includegraphics[scale=.5]{"discounts"}
+\includegraphics[scale=.4]{"discounts"}
 \caption{Different discount rates affecting intermediary states}
 \label{fig:discounts}
 \end{center}
@@ -168,44 +168,50 @@ With this function, triggering a new signal can take time. But the learner still
 
 \section{Behaviour of the algorithm}
 
-\subsection{Convergent estimates for equivalent underlying states}
+We are going to develop a simple insight about why and how the proposed algorithm might lead to optimal long term decisions. For this, we recall the important steps of the algorithm. Firstly, it evaluates the best possible action to take after observing a stochastic state $\B{x_t}(p_t)$. Secondly, it appends the latter or a randomly chosen one to the training features matrix $\B{X}$. If the signal function $s(\B{x^*})$ is triggered, it backwardly assigns values to the states of the episode thanks to the discount function $d(\gamma, \Delta, \delta, s(\B{x^*})$. These values are finally appended to the training target variable $\B{y}$. Then the training set is used as an input for the approximation function $f()$ to find $\B{w} = \arg\min_{\B{w}}(l(f(\B{w},\B{X}),\B{y}))$. In the next episode, the algorithm evaluates a new stochastic state and uses the new $\B{w}$ to make take the next decision.
 
-The convergence of the algorithm's evaluations is closely linked to the performance of the regressor function at extracting underlying patterns between states and values, assuming however that this relationship exists.
+An important assumption has to be satisfied for the algorithm to take the right decisions. There needs to be patterns in the stochastic states. If it is not the case, the approximation function is unable to optimise the value of $\B{w}$ with time. But it does not make sense to use such algorithm if we know that we are in such setting. By opposition, an application of choice is when we have imperfect representations of the same underlying states, such has pictures of a board game.
 
-Let's consider a finite set of underlying states. If the conditions are favorable, we expect overtime, as the training sample is fed after each episode, a better evaluation of the different states and, asymptotically, underlying equivalent states will get the same value. Under another perspective, we expect $w^*$ to converge as $X$ grows. 
+Another assumption is that $s(\B{x^*})$ is able to give an objective information about the current state. This is a strong assumption. However, we can imagine a practical solution for this. This signal function could result from a pre-trained supervised approximation function that was able to evaluate with high precision the features’ values triggering each of the possible signal. Another solution, providing perfect information, is manual monitoring at the end of each episode.
 
-An interesting point is the expected non-linearity of this process. Indeed, as long as the learner did not discover all gain-yielding states, the regressor's parameters do not permanently stabilize. Once all states have been uncovered, this convergence happens.
+Finally, we require a correct tuning of the algorithm’s different elements. The approximation function should be complex enough to recognise the possible patterns in $\B{x_t}(p_t)$. $\Omega(\B{x_t})$ should be well designed. The discount function $d(\gamma, \Delta, \delta, s(\B{x^*}))$ should also be well designed.
 
-If the set of underlying states is infinite, the regressor's parameters can stabilize only if there exist patterns between the states and the value. An example of this situation is a vision-equipped learner whose task is to catch the same ball in different environments.
+With these conditions fulfilled, we firstly expect that, as the training sample is fed after each episode, a better evaluation of the different states and, asymptotically, underlying equivalent states will get the same value. Formally, we anticipate:
+$$\B{w} \xrightarrow[n \to \infty]{} \B{w^*}$$
+where $n$ is the number of previously observed states and $w^*$ is the optimal set of weights. In most cases, we expect the convergence process to be non-linear.
 
-\subsection{Long term gain maximization}
+Evaluating well the value of equivalent states is only a first step to obtain a learner that is useful in practice. To maximise the long-term gains, the algorithm needs to have a relatively balanced experience between gains and losses. First, the tuning of $\gamma$ should allow the regressor to evaluate states faster, via the learner's actions. If necessary, we need to insure that
+$d(\gamma, \Delta, \delta, s_{gain}) \simeq d(\gamma, \Delta, \delta, s_{loss})$
+if a $\delta$th intermediary action possibly leads to a gain in one episode but also to a loss in another episode. Second, tuning $\epsilon$ well will insure that the learner explores potentially good actions fast enough ; an episode number-dependent value for $\epsilon$ might be desirable. If these final assumptions are insured, we expect:
+$$\B{x_c} \xrightarrow[n \to \infty]{} \B{x^*}$$
+where $x^*$ is the optimal action for a particular time $t$.
 
-Evaluating well the value of equivalent states is only a first step to obtain a learner that is useful in practice. To behave in a long term-maximizing way, the algorithm needs to have a relatively balanced experience between gains and losses. 
+\section{Implementation for a tic-tac-toe robot player}
 
-First, tuning $\gamma$ in a proper way will help to allow the regressor to evaluate states well faster, via the learner's actions. If possible, a good way to tune this parameter is to make such that
-$$d(\gamma, \Delta, \delta, s_{gain}) \simeq d(\gamma, \Delta, \delta, s_{loss})$$
-for the $\delta$th intermediary action that led to a gain in one episode but also to a loss in another episode.
+Tic-tac-toe is a two players game where the players are represented by the symbols X and O in a three by three grid. Each player takes turns marking the spaces with their symbol. The player who places three of his symbol in a horizontal, vertical, or diagonal row wins the game. Note that draw is a possible outcome.
 
-Second, tuning $\epsilon$ well will insure that the learner explores potentially good actions fast enough. A number of episodes-dependent $\epsilon$ might be desirable in that regard.
+Robots playing this game are a classical application in RL. But this time we want the learner to play according to its \textit{vision} of a board that sequentially drawn with a pen. The information available to the robot corresponds to images transformed into vectors. Ultimately, the learner has to discover that the images shown in Figure~\ref{fig:gameA} represent the same game.
 
-\section{Implementaion for a "real-world" tic-tac-toe game}
+\begin{figure}
+\begin{center}
+\includegraphics[scale=.14]{"gameA"}
+\includegraphics[scale=.35]{"gameA_"}
+\caption{After enough games, the learner is able to play the same way after visualizing either of these images}
+\label{fig:gameA}
+\end{center}
+\end{figure}
 
-The tic-tac-toe game is a game with initially nine positions organised as a three by three square. After the first player played the first move, the second player is left with eight available moves. This is until one player won or once the whole board is covered, yielding a draw. To win, a player must align his moves on the same line or on the same column, or by filling one of the board's diagonal.
+The images of the board are thus stochastic representations of a finite set of underlying states. The stochastic processes affecting particularly these representations are the variations in the handwriting and the brightness of the environment.
 
-The tic-tac-toe game is a RL classical application, but this time the learner has to play according to his "vision". Notably, when playing against a human, the information available to the robot corresponds to an image of the type:
-
-TWO IMAGES
-caption: after enough games, the learner should be able to play the same way after visualizing either of these images
-
-This is thus a "stochastic representation" from a finite set of states. The stochastic processes affecting this representation are notably the varying handwrittings and the environment's brightness.
-
-After a sufficient number of games, the robot is able to effectively assign values to the potential actions it might take:
-ADD 150*150 PICTURE WITH PROBAS ON TOP, FOR 100, 1000, 5000 selfplays
+After a sufficient number of games, the robot is able to effectively assign values to the potential actions it might take, as displayed in Figure~.
+ADD 150*150 PICTURE WITH PROBAS ON TOP, FOR 100, 1000, 5000 self plays
 REVALUE SO LOSS = -1, DRAW=0
 
-\subsection{Particularities of the implementation}
+\subsection{Particularities of the algorithm's implementation}
 
-The chosen regressor is an artificial neural network detailed in Figure~\ref{fig:neuralnet}. I chose this type of regressor as I believe it supports the complex relationship between the pixels representing a state and the value of this state. A sufficiently complex structure is thus able to handle the very large number of ways to represent a game combined with the many game combinations. In this implementation, the network is has the following form:
+The general algorithm presented in the previous section had to be adapted for this particular application, in particular regarding the approximation function, the signal function and the discount function.
+
+The chosen approximation function is an artificial neural network detailed in Figure~\ref{fig:neuralnet}. It outputs real values and is a regressor. The choice for this regressor was driven by the complexity of the relationship existing between the representations of the states and the value assigned to these states. Indeed, this particular architecture proved to capture the infinite number of possible representations of $255168$ possible states, without taking into account rotations and reflections. 
 
 \begin{figure}
 \begin{center}
@@ -215,22 +221,29 @@ The chosen regressor is an artificial neural network detailed in Figure~\ref{fig
 \end{center}
 \end{figure}
 
-The stochastic state $x_t$ is resulting from another player's move represented on an image as seen above. In terms of strategy optimization, here the learner would have to think ahead. The states here are the fruit of *rival* actions, either from a human player or from another robot. And in this implmentation, the learner plays after the rival, so it can win either in three or four moves.
+The stochastic state $\B{x_t}(p_t)$ is resulting from another player's move. The states are the fruit of \textit{rival} actions, either from a human player or from another robot. So in terms of strategy optimization, the learner has to anticipate a possibly defavorable environment during the game and act accordingly. In particular, in this implementation, the learner plays after the rival, so it can win only with three or four moves.
 
-The signal function is set by a human. It triggers the values $1$ if the learner wins, $-0.1$ if there is a draw and $-1$ if it loses or if it does an illegal move. Notice that an illegal move corresponds only to playing on top of the other player. The learner here knows where it last played.
+The signal function is set manually. It is triggered when a game ends. If the learner wins, it triggers $1$, $-0.1$ if there is a draw and $-1$ if it loses or if it does an illegal move. Notice that an illegal move corresponds only to playing on top of the other player. The learner here knows where it last played.
 
-In this implementation, the discount function $d(\gamma, \Delta, \delta, s(x^*))$ has the form
-$$\gamma^{\Delta-\delta}s(x^*)$$
-More precisely, I picked $\gamma=0.3$ as it yields the same value for an early move. The discounted value for moves leading to a win thus are: 1, 0.3, 0.09 and 0.081. For a draw: -0.1, -0.01, -0.001 and -0.0001. For a loss: -1, -0.3, -0.09 and -0.081. For an illegal move, only the signal value is given to the last move.
+In this implementation, the discount function $d(\gamma, \Delta, \delta, s(\B{x_c}))$ has the form
+$$\gamma^{\Delta-\delta}s(\B{x_c})$$
+More precisely, I picked $\gamma=0.3$ so we get neutral values, close to $0$, for early moves regardless of the game's outcome. The possible discounted values for moves leading to a win thus are: $1$, $0.3$, $0.09$ and $0.081$. For a draw: $-0.1$, $-0.01$, $-0.001$ and $-0.0001$. For a loss: $-1$, $-0.3$, $-0.09$ and $-0.081$. When an illegal move happens, there is no discount computation and this move gets the value $-1$.
 
-I implemented an adaptive randomness factor. It has the very *ad hoc* form 
-$$\epsilon = 50000/log_{10}(S)^6,$$
-where $S$ is the size of the data in bytes. I chose this formula so it equals 99\% for a data corresponding to 10000 games. The other learner is penalized and has $\epsilon = 100000/log_{10}(S)^6$ so our learner has time to learn how to win.
+Finally, I implemented an adaptive randomness factor. It has the very \textit{ad hoc} form 
+$$\epsilon = 30000/log_{10}(S)^6,$$
+where $S$ is the size of the data in bytes. I chose this formula so it equals 99\% for a data corresponding to 10000 games which is how many games I train the learner with. The other robot is penalized with $\epsilon = 120000/log_{10}(S)^6$ so our learner has time to learn how to win in the beginning. This parameter has to be set sensibly for an optimized training to get a perfect "player". However we will not study this aspect further here.
 
 \subsection{Necessary adjustments}
 
-A few adjustments were to be made. First, notice that the learning phase is done against a Q-learning robot. After each of the players' move, an image representing the current state of the board is generated. This is image is then reduced and appended to the training set.
-SHOW LARGE IMAGE -> SMALL IMAGE transition
+A few adjustments were to be made. First, notice that the learning phase is done against a Q-learning robot. After each of the players' move, an image representing the current state of the board is generated. This is image is then reduced and appended to the training set, as shown in Figure~\ref{fig:transition}.
+
+\begin{figure}
+\begin{center}
+\includegraphics[scale=.4]{"discounts"}
+\caption{Different discount rates affecting intermediary states}
+\label{fig:transition}
+\end{center}
+\end{figure}
 
 Second, our learner had the disadvantage of receiving imperfect information about the game compared to the other robot, knowing exactly where the moves are made. To compensate for this, our learner after each move rotates the game three times and appends the learned values accordingly.
 
@@ -252,8 +265,6 @@ We see that a more exploratory learner improves its winning rate faster but is t
 
 A more exploratory opponent helps the learner to win and thus discover what are the winning strategies. However, making the opponent too exploratory would limit the performance of the learner when playing against a trained human.
 
-INCLUDE ADAPTATIVE LEARNING RATE?
-
 Notice that a learner trained against a random opponent is able, after 100 games, to play easy moves, typically the last move to win, against a human player.
 
 The last plot shows the average number of moves before winning for the last 100 games. 
@@ -261,12 +272,6 @@ The last plot shows the average number of moves before winning for the last 100 
 PLOT AVG MOVES
 
 The learner can only win in three or four moves. Against a random player, we that the learner has an average number of moves to win closer to three with more games.
-
-\subsection{Improvements}
-
-Convolutional layer
-
-Detect all illegal moves
 
 \section{Conclusion}
 
@@ -292,6 +297,10 @@ Now, we can think of more useful applications than this overkill tic-tac-toe pla
 \bibitem{c4} http://gaips.inesc-id.pt/~fmelo/pub/melo08icml.pdf
 
 \bibitem{c5} Human-level control through deep reinforcement learning
+
+\bibitem{c6} Munos et al. (2016), Safe and efficient off-policy reinforcement learning, arXiv:1606.02647v1 [cs.LG]
+
+\bibitem{c7} Seijen et al. (2015), True Online Temporal-Difference Learning, arXiv:1512.04087v1 [cs.AI]
 
 \end{thebibliography}
 
