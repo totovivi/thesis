@@ -1,7 +1,7 @@
 from PIL import Image, ImageEnhance
 import os
 os.chdir('/Users/Thomas/git/thesis/images7')
-dim = 3
+dim = 7
 
 def normalize(arr):
     arr = arr.astype('float')

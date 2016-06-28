@@ -33,8 +33,8 @@ Ns = []
 maxi = 0
 pred = 0
 who = 'none'
-dim = 3
-selfplays = 1000
+dim = 7
+selfplays = 5000
 for i in os.listdir(smalls):
     if i.startswith('X'):
         Xs.append(scipy.misc.imread(i, flatten=True))
@@ -93,8 +93,10 @@ class Learner:
 
     def nn_train(s, X, y):
         n = X.shape[0]
-        cv_set = random.sample(range(0, n), int(round(n*0.2, 0)))
+        cv_set = random.sample(range(0, n), int(round(n*0.25, 0)))
         Xcv = X[cv_set,:] ; ycv = y[cv_set]
+        X = np.delete(X, cv_set, axis=0)
+        y = np.delete(y, cv_set)
         X = X.reshape(-1, 1, dim*3, dim*3)
         Xcv = Xcv.reshape(-1, 1, dim*3, dim*3)
         cv = (Xcv, ycv)
@@ -107,18 +109,17 @@ class Learner:
 
         s.net = Regressor(
                 layers=[
-                    Convolution("Rectifier", channels=27, kernel_shape=(3,3), kernel_stride=(2,2)),
-                    Convolution("Rectifier", channels=54, kernel_shape=(2,2), kernel_stride=(1,1)),
-                    #Convolution("Rectifier", channels=27, kernel_shape=(3,3), kernel_stride=(1,1)),
+                    Convolution("Rectifier", channels=441, kernel_shape=(7,7), kernel_stride=(7,7)),
+                    Layer("Rectifier", units=210),
                     Layer("Sigmoid", units=210),
                     Layer("Rectifier", units=210),
                     Layer("Sigmoid")],
                 n_iter=100,
-                learning_rate=0.001,
+                learning_rate=0.0001,
                 parameters=params,
                 valid_set=cv,
                 learning_rule='rmsprop',
-                f_stable=0.001,
+                f_stable=0.0001,
                 verbose=True,
                 batch_size=200,
                 n_stable=10)
@@ -225,7 +226,7 @@ class Learner:
             log_size = np.log10(data_size)
         else: log_size = 1
 
-        if s.player == 1: s.epsilon = min([1, 150000/(log_size**6)]) #we penalize the Q-learner. It would be too strong at the begining!
+        if s.player == 1: s.epsilon = min([1, 300000/(log_size**6)]) #we penalize the Q-learner. It would be too strong at the begining!
         else: s.epsilon = min([1, 20000/(log_size**6)])
 
         split = np.random.choice(2, 1, p=[1 - s.epsilon, s.epsilon]).tolist()[0]
@@ -301,9 +302,9 @@ class Game:
             img = ImageOps.autocontrast(img,ignore=range(0,135)+range(230,256))
             img = ImageOps.mirror(img)
             bright = ImageEnhance.Brightness(img)
-            img = bright.enhance(2)
+            img = bright.enhance(4.5)
             contrast = ImageEnhance.Contrast(img)
-            img = contrast.enhance(2)
+            img = contrast.enhance(2.5)
             newgimg = np.array(img)
             img.save('small_game.png')
             newgimg = scipy.misc.imread('small_game.png', flatten=False, mode='L')
@@ -356,9 +357,13 @@ class Game:
                 draw.text((y, x), str("{:10.3f}".format(p)), fill=(red, 0, 0))
                 img.save(sys.stdout, "PNG")
 
-            scipy.misc.imsave('/Users/Thomas/git/thesis/robotmove/predictions.png', img)
+            imgpath = '/Users/Thomas/git/thesis/robotmove/predictions.png'
+            scipy.misc.imsave(imgpath, img)
             #os.remove('temp.png')
             os.remove('small_game.png')
+
+            image = Image.open(imgpath)
+            image.show()
 
     def selfplay(s, n):
         #for specific number of rounds
@@ -536,7 +541,7 @@ if __name__ == "__main__":
     p2 = Learner(player=2)
     g = Game()
 
-g.selfplay(selfplays) #train against a Q-learning robot
+#g.selfplay(selfplays) #train against a Q-learning robot
 
-#g(new=True) #first round of a game
-#g(new=False) #other round than first
+g(new=True) #first round of a game
+g(new=False) #other round than first
